@@ -15,14 +15,14 @@
   "postBuildHooks": null,
   "Author": {
     "name": "tobychui",
-    "email": "chuicheuklong@hotmail.com"
+    "email": "admin@arozos.com"
   },
   "Info": {
     "companyName": "arozsync",
     "productName": "arozsync",
     "productVersion": "1.0.0",
-    "copyright": "Copyright.........",
-    "comments": "Built using Wails (https://wails.app)"
+    "copyright": "Copyright ArozOS Project",
+    "comments": "Sync your files from ArozOS server"
   },
   "debounceMS": 100,
   "devserverurl": "http://localhost:34115",

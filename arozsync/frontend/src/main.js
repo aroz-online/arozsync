@@ -1,6 +1,40 @@
-// Get input + focus
-let nameElement = document.getElementById("name");
-nameElement.focus();
+/*
+    Scanner Functions
+*/
+
+function ScanNearbyArozOS(callback){
+  try {
+    window.go.main.App.ScanNearbyNodes()
+      .then((result) => {
+        //Return JSON stringify scan results
+        callback(result)
+      })
+      .catch((err) => {
+        console.error(err);
+        callback("");
+      });
+  } catch (err) {
+    console.error(err);
+    callback("");
+  }
+}
+
+function OpenLinkInBrowser(link){
+  try {
+    window.go.main.App.OpenLinkInLocalBrowser(link)
+      .then((result) => {
+
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  } catch (err) {
+    console.error(err);
+
+  }
+}
+
+
 
 // Setup the greet function
 window.greet = function () {
@@ -22,11 +56,5 @@ window.greet = function () {
       });
   } catch (err) {
     console.error(err);
-  }
-};
-
-nameElement.onkeydown = function (e) {
-  if (e.keyCode == 13) {
-    window.greet();
   }
 };

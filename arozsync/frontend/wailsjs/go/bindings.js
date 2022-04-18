@@ -12,6 +12,21 @@ const go = {
       "Greet": (arg1) => {
         return window.go.main.App.Greet(arg1);
       },
+      /**
+       * OpenLinkInLocalBrowser
+       * @param {string} arg1 - Go Type: string
+       * @returns {Promise<void>} 
+       */
+      "OpenLinkInLocalBrowser": (arg1) => {
+        return window.go.main.App.OpenLinkInLocalBrowser(arg1);
+      },
+      /**
+       * ScanNearbyNodes
+       * @returns {Promise<string>}  - Go Type: string
+       */
+      "ScanNearbyNodes": () => {
+        return window.go.main.App.ScanNearbyNodes();
+      },
     },
   },
 

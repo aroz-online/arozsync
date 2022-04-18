@@ -1,8 +1,19 @@
 package main
 
+/*
+
+	arozsync
+	Author: tobychui
+
+	This is a simple desktop application for synchronizing your files
+	on arozos to your local PC, best suited when you love to work with
+	multiple PCs and laptops
+*/
 import (
+	"arozsync/mod/mdns"
 	"embed"
 	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 
@@ -14,16 +25,41 @@ import (
 
 //go:embed frontend/src
 var assets embed.FS
+var mdnsScanner *mdns.MDNSHost
 
 //go:embed build/appicon.png
 var icon []byte
 
 func main() {
+	/*
+		Create all required managers
+	*/
+
+	name, err := os.Hostname()
+	if err != nil {
+		name = "Unknown Computer"
+	}
+	s, err := mdns.NewMDNS(mdns.NetworkHost{
+		HostName: name,
+		Domain:   "scan.aroz.sync",
+		Model:    "computer",
+	})
+
+	if err != nil {
+		//Show error page
+
+	} else {
+		mdnsScanner = s
+	}
+
+	/*
+		Create an App Instance
+	*/
 	// Create an instance of the app structure
 	app := NewApp()
 
 	// Create application with options
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:             "arozsync",
 		Width:             400,
 		Height:            600,

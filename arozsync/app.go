@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"os/exec"
+	"runtime"
 )
 
 // App struct
@@ -41,4 +45,29 @@ func (a *App) shutdown(ctx context.Context) {
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+// Scan return a list of scanned nodes
+func (a *App) ScanNearbyNodes() string {
+	hosts := mdnsScanner.Scan(10, "arozos.com")
+	js, _ := json.Marshal(hosts)
+	return string(js)
+}
+
+func (a *App) OpenLinkInLocalBrowser(url string) {
+	var err error
+
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		log.Println("Unable to open browser with given link: ", err)
+	}
 }
