@@ -6,6 +6,7 @@ export interface go {
 		Greet(arg1:string):Promise<string>
 		OpenLinkInLocalBrowser(arg1:string):Promise<void>
 		ScanNearbyNodes():Promise<string>
+		TryConnect(arg1:string,arg2:string,arg3:string):Promise<boolean>
     },
   }
 

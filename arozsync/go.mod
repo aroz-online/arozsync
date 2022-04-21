@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/grandcat/zeroconf v1.0.0
+	github.com/studio-b12/gowebdav v0.0.0-20220128162035-c7b1ff8a5e62
 	github.com/wailsapp/wails/v2 v2.0.0-beta.34
 )
 

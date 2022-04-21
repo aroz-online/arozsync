@@ -25,7 +25,7 @@ import (
 
 //go:embed frontend/src
 var assets embed.FS
-var mdnsScanner *mdns.MDNSHost
+var MdnsScanner *mdns.MDNSHost
 
 //go:embed build/appicon.png
 var icon []byte
@@ -49,7 +49,7 @@ func main() {
 		//Show error page
 
 	} else {
-		mdnsScanner = s
+		MdnsScanner = s
 	}
 
 	/*

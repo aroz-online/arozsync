@@ -1,4 +1,25 @@
 /*
+    Connection Check
+*/
+
+function TestConnection(ipAddr, succCallback, failCallback){
+  try {
+    window.go.main.App.TryConnect(ipAddr)
+      .then((result) => {
+        //Return JSON stringify scan results
+        succCallback(result)
+      })
+      .catch((err) => {
+        console.error(err);
+        failCallback("");
+      });
+  } catch (err) {
+    console.error(err);
+    failCallback("");
+  }
+}
+
+/*
     Scanner Functions
 */
 

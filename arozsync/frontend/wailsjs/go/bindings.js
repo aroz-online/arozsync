@@ -27,6 +27,16 @@ const go = {
       "ScanNearbyNodes": () => {
         return window.go.main.App.ScanNearbyNodes();
       },
+      /**
+       * TryConnect
+       * @param {string} arg1 - Go Type: string
+       * @param {string} arg2 - Go Type: string
+       * @param {string} arg3 - Go Type: string
+       * @returns {Promise<boolean>}  - Go Type: bool
+       */
+      "TryConnect": (arg1, arg2, arg3) => {
+        return window.go.main.App.TryConnect(arg1, arg2, arg3);
+      },
     },
   },
 

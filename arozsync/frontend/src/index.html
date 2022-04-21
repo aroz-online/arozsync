@@ -54,6 +54,7 @@
       <br>
       <div class="ts-container">
           <p>Scanning nearby ArozOS nodes</p>
+          
           <div class="ts-divider"></div>
             <div class="ts-box">
               <table class="ts-table is-basic">
@@ -75,20 +76,63 @@
                   </tbody>
               </table>
           </div>
-          <small>Can't see your node? <a href="#" onclick="switchTab('manual');">Add your server manually</a></small>
+          <small>Can't see your node? <a href="#" onclick="startScan();">Rescan</a> or <a href="#" onclick="switchTab('manual');">add your server manually</a></small>
       </div>
       <div class="footer">
         <button class="ts-button is-outlined" onclick="switchTab('homepage');">Cancel</button>
+      </div>
     </div>
 
     <!-- Manual IP adding-->
+    <div id="manual" class="tab">
+      <br>
+      <div class="ts-container">
+        <p>Enter your server IP address or domain name with port number</p>
+        <div class="ts-input is-fluid">
+          <input id="manualConnectionTarget" type="text" placeholder="e.g.192.168.0.100:8080">
+        </div>
+        <button  class="ts-button" style="background-color: var(--ts-primary-400); border: 0px solid transparent; color: white; margin-top: 0.4em;" onclick="manualConn();">Connect</button>
+      </div>
+      <div class="footer">
+        <button class="ts-button is-outlined" onclick="switchTab('homepage');">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Account Information Enter -->
+    <div id="auth" class="tab">
+      <br>
+      <div class="ts-container">
+        <div class="ts-header"><span class="ts-icon is-lock-icon" style="margin-right: 1em;"></span> Authentication</div>
+        <div class="ts-divider"></div>
+        <p>Login with the sync service with your ArozOS server account</p>
+        <div class="ts-input is-fluid is-start-icon" style="margin-top: 0.4em;">
+            <span class="ts-icon is-user-icon"></span>
+            <input id="username" type="text" placeholder="Username">
+        </div>
+        <div class="ts-input is-fluid is-start-icon" style="margin-top: 0.4em;">
+            <span class="ts-icon is-key-icon"></span>
+            <input id="password" type="password" placeholder="Password">
+        </div>
+        <button class="ts-button is-outlined"  style="margin-top: 0.6em; background-color: var(--ts-positive-500); color: white; border: 0px solid transparent;" onclick="testConn();">Login</button>
+      </div>
+      <div class="footer">
+        <button class="ts-button is-outlined" onclick="backToIpPick();">Cancel</button>
+      </div>
+    </div>
 
     <!-- IP Addr Validation -->
-    
+    <div id="iptest" class="tab">
+      <br>
+      <div class="ts-container">
+        <p><span class="ts-icon is-spinning is-spinner-icon"></span> Establishing Connection to Server</p>
+      </div>
     </div>
+
     <script src="main.js"></script>
     <script>
       var bufferedHostsList = [];
+      var connTestPendingIp = [];
+      var lastPage = "";
 
       $(".year").text(new Date().getFullYear());
 
@@ -101,9 +145,58 @@
         IP Discover Related
       */
 
+      function performConnectionTest(targetIps, returnPage){
+        if (targetIps.length == 0){
+          //Invalid
+          return
+        }
+
+        TestConnection(targetIps[0], function(results){
+          console.log(results)
+        })
+        
+      }
+
+      /*
+        Login Interface
+      */
+
+      //Test Connecting to webdav using username and ips
+      function testConn(){
+        alert(connTestPendingIp[0]);
+      }
+
+      function backToIpPick(){
+        if (lastPage == "manual"){
+          switchTab("manual");
+        }else if (lastPage == "scanner"){
+          switchTab("scanner");
+        }else{
+          switchTab("homepage");
+        }
+      }
+
+      /*
+        Manual IP Input
+      */
+     function manualConn(){
+        var conectionTargets = [$("#manualConnectionTarget").val()];
+        switchTab("auth");
+        connTestPendingIp = conectionTargets;
+        lastPage = "manual";
+     }
+
       /*
          Scanner Related
       */
+
+      function scanConn(object){
+        var ips = $(object).attr("ips");
+        ips = JSON.parse(decodeURIComponent(ips));
+        switchTab("auth");
+        connTestPendingIp = ips;
+        lastPage = "scanner";
+      }
 
       function startScan(){
         $("#scannedList").html(`
@@ -123,14 +216,18 @@
                 results.forEach(device => {
                   var thisHostname = device.HostName.replace(".local.", "") + "<br>(" + device.MinorVersion + ")";
                   var ipv4Links = [];
+                  var connLinks = [];
                   device.IPv4.forEach(thisIp => {
                     ipv4Links.push(`<a href="#" onclick="OpenLinkInBrowser('http://${thisIp}:${device.Port}/');">${thisIp}</a>`);
+                    connLinks.push(thisIp + ":" + device.Port);
                   });
+
+                  var ipsEncoded = encodeURIComponent(JSON.stringify(connLinks));
                   
                   $("#scannedList").append(`<tr>
                       <td><a onclick="connectToHost('${device.UUID}');">${thisHostname}</a></td>
                       <td>${ipv4Links.join("<br>")}</td>
-                      <td align="center"><button class="ts-button is-small is-dense is-icon">
+                      <td align="center"><button ips="${ipsEncoded}" onclick="scanConn(this);" class="ts-button is-small is-dense is-icon">
                           <span class="ts-icon is-link-icon"></span>
                       </button></td>
                   </tr>`);

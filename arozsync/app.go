@@ -7,6 +7,8 @@ import (
 	"log"
 	"os/exec"
 	"runtime"
+
+	"github.com/studio-b12/gowebdav"
 )
 
 // App struct
@@ -49,7 +51,7 @@ func (a *App) Greet(name string) string {
 
 // Scan return a list of scanned nodes
 func (a *App) ScanNearbyNodes() string {
-	hosts := mdnsScanner.Scan(10, "arozos.com")
+	hosts := MdnsScanner.Scan(10, "arozos.com")
 	js, _ := json.Marshal(hosts)
 	return string(js)
 }
@@ -70,4 +72,15 @@ func (a *App) OpenLinkInLocalBrowser(url string) {
 	if err != nil {
 		log.Println("Unable to open browser with given link: ", err)
 	}
+}
+
+func (a *App) TryConnect(ip string, username string, password string) bool {
+	root := "http://" + ip + "/user"
+	c := gowebdav.NewClient(root, username, password)
+	_, err := c.ReadDir("/")
+	if err != nil {
+		return false
+	}
+
+	return true
 }
