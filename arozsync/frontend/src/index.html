@@ -113,7 +113,18 @@
             <span class="ts-icon is-key-icon"></span>
             <input id="password" type="password" placeholder="Password">
         </div>
-        <button class="ts-button is-outlined"  style="margin-top: 0.6em; background-color: var(--ts-positive-500); color: white; border: 0px solid transparent;" onclick="testConn();">Login</button>
+        <label class="ts-checkbox" style="margin-top: 0.8em">
+            <input id="rememberCred" type="checkbox"/>
+            Save login credentials on this device
+        </label><br>
+        <small><span style="color: var(--ts-warning-600)" class="ts-icon is-circle-exclamation-icon"></span> Do not select this option on public computers</small>
+        <br><br>
+        <button id="loginBtn" class="ts-button is-outlined"  style="margin-top: 0.6em; background-color: var(--ts-positive-500); color: white; border: 0px solid transparent;" onclick="testConn();">Login</button>
+
+        <div id="connfail" class="ts-notice is-negative" style="margin-top: 1em; display:none;">
+            <div class="title">Error</div>
+            <div class="content">Invalid host IP address, username or password.</div>
+        </div>
       </div>
       <div class="footer">
         <button class="ts-button is-outlined" onclick="backToIpPick();">Cancel</button>
@@ -145,25 +156,32 @@
         IP Discover Related
       */
 
-      function performConnectionTest(targetIps, returnPage){
-        if (targetIps.length == 0){
-          //Invalid
-          return
-        }
-
-        TestConnection(targetIps[0], function(results){
-          console.log(results)
-        })
-        
-      }
-
       /*
         Login Interface
       */
 
       //Test Connecting to webdav using username and ips
       function testConn(){
-        alert(connTestPendingIp[0]);
+        var username = $("#username").val();
+        var password = $("#password").val();
+        var remember = $("#rememberCred")[0].checked;
+        $("#loginBtn").addClass("is-disabled");
+        TestConnection(connTestPendingIp, username, password, remember, function(results){
+          //Succ callback
+          console.log(results);
+          if (results.length == 0){
+            //No connection can be made
+            $("#connfail").fadeIn("fast").delay(5000).fadeOut("fast");
+          }else{
+            //Connable IP found. Continue
+
+          }
+          $("#loginBtn").removeClass("is-disabled");
+        }, function(){
+          //Failed Callback
+          $("#connfail").fadeIn("fast").delay(5000).fadeOut("fast");
+          $("#loginBtn").removeClass("is-disabled");
+        });
       }
 
       function backToIpPick(){
@@ -180,6 +198,13 @@
         Manual IP Input
       */
      function manualConn(){
+       if ($("#manualConnectionTarget").val().trim() == ""){
+          //Invalid setting
+          $("#manualConnectionTarget").parent().addClass("is-negative");
+          return;
+       }
+
+       $("#manualConnectionTarget").parent().removeClass("is-negative");
         var conectionTargets = [$("#manualConnectionTarget").val()];
         switchTab("auth");
         connTestPendingIp = conectionTargets;

@@ -74,13 +74,28 @@ func (a *App) OpenLinkInLocalBrowser(url string) {
 	}
 }
 
-func (a *App) TryConnect(ip string, username string, password string) bool {
-	root := "http://" + ip + "/user"
-	c := gowebdav.NewClient(root, username, password)
-	_, err := c.ReadDir("/")
-	if err != nil {
-		return false
+//Try all the ips and see if it is connectable
+func (a *App) TryConnect(ips []string, username string, password string, remember bool) []string {
+	succConn := []string{}
+	for _, ip := range ips {
+		thisRoot := "http://" + ip + "/webdav/user"
+		c := gowebdav.NewClient(thisRoot, username, password)
+		_, err := c.ReadDir("/")
+		if err != nil {
+			log.Println(err)
+			continue
+		} else {
+			//ok!
+			succConn = append(succConn, ip)
+		}
 	}
 
-	return true
+	if remember && len(succConn) > 0 {
+		SaveCred(&LoginCred{
+			Username: username,
+			Password: password,
+			IPs:      ips,
+		})
+	}
+	return succConn
 }

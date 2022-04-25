@@ -29,13 +29,14 @@ const go = {
       },
       /**
        * TryConnect
-       * @param {string} arg1 - Go Type: string
+       * @param {Array<string>} arg1 - Go Type: []string
        * @param {string} arg2 - Go Type: string
        * @param {string} arg3 - Go Type: string
-       * @returns {Promise<boolean>}  - Go Type: bool
+       * @param {boolean} arg4 - Go Type: bool
+       * @returns {Promise<Array<string>>}  - Go Type: []string
        */
-      "TryConnect": (arg1, arg2, arg3) => {
-        return window.go.main.App.TryConnect(arg1, arg2, arg3);
+      "TryConnect": (arg1, arg2, arg3, arg4) => {
+        return window.go.main.App.TryConnect(arg1, arg2, arg3, arg4);
       },
     },
   },

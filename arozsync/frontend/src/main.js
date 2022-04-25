@@ -2,9 +2,9 @@
     Connection Check
 */
 
-function TestConnection(ipAddr, succCallback, failCallback){
+function TestConnection(ipAddr, username, password, remember, succCallback, failCallback){
   try {
-    window.go.main.App.TryConnect(ipAddr)
+    window.go.main.App.TryConnect(ipAddr,username, password,remember)
       .then((result) => {
         //Return JSON stringify scan results
         succCallback(result)
