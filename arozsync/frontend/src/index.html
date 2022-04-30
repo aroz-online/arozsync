@@ -79,7 +79,7 @@
           <small>Can't see your node? <a href="#" onclick="startScan();">Rescan</a> or <a href="#" onclick="switchTab('manual');">add your server manually</a></small>
       </div>
       <div class="footer">
-        <button class="ts-button is-outlined" onclick="switchTab('homepage');">Cancel</button>
+        <button class="ts-button is-outlined" onclick="switchTab('homepage');">Back</button>
       </div>
     </div>
 
@@ -94,7 +94,7 @@
         <button  class="ts-button" style="background-color: var(--ts-primary-400); border: 0px solid transparent; color: white; margin-top: 0.4em;" onclick="manualConn();">Connect</button>
       </div>
       <div class="footer">
-        <button class="ts-button is-outlined" onclick="switchTab('homepage');">Cancel</button>
+        <button class="ts-button is-outlined" onclick="switchTab('homepage');">Back</button>
       </div>
     </div>
 
@@ -120,14 +120,9 @@
         <small><span style="color: var(--ts-warning-600)" class="ts-icon is-circle-exclamation-icon"></span> Do not select this option on public computers</small>
         <br><br>
         <button id="loginBtn" class="ts-button is-outlined"  style="margin-top: 0.6em; background-color: var(--ts-positive-500); color: white; border: 0px solid transparent;" onclick="testConn();">Login</button>
-
-        <div id="connfail" class="ts-notice is-negative" style="margin-top: 1em; display:none;">
-            <div class="title">Error</div>
-            <div class="content">Invalid host IP address, username or password.</div>
-        </div>
       </div>
       <div class="footer">
-        <button class="ts-button is-outlined" onclick="backToIpPick();">Cancel</button>
+        <button class="ts-button is-outlined" onclick="backToIpPick();">Back</button>
       </div>
     </div>
 
@@ -135,9 +130,41 @@
     <div id="iptest" class="tab">
       <br>
       <div class="ts-container">
-        <p><span class="ts-icon is-spinning is-spinner-icon"></span> Establishing Connection to Server</p>
+        <br><br><br>
+        <div id="connecting" class="ts-center">
+          <div class="ts-header is-large"><div class="ts-loading"></div></div>
+          <div class="ts-text is-secondary">Establishing Connection to Server</div>
+        </div>
+        <div id="connfail" class="ts-notice is-negative" style="margin-top: 1em; display:none;">
+            <div class="title">Error</div>
+            <div class="content">Invalid host IP address, WebDAV not enabled, or invalid username / password.</div>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="ts-button is-outlined" onclick="switchTab('auth');">Back</button>
+      </div> 
+    </div>
+
+    <!-- Connection Established -->
+    <div id="connsucc" class="tab">
+      <br>
+      <div class="ts-container">
+        <br><br><br>
+        <div id="connsuccicon" class="ts-center">
+          <div class="ts-header is-large"><span style="color: var(--ts-positive-500)" class="ts-icon is-check-icon"></span></div>
+          <div class="ts-text is-secondary">Connection Established</div>
+        </div>
       </div>
     </div>
+
+    <!-- List All Directory -->
+    <div id="dirlist" class="tab">
+      <br>
+      <div class="ts-container">
+        <h1>WIP</h1>
+      </div>
+    </div>
+
 
     <script src="main.js"></script>
     <script>
@@ -166,15 +193,24 @@
         var password = $("#password").val();
         var remember = $("#rememberCred")[0].checked;
         $("#loginBtn").addClass("is-disabled");
+        $("#connecting").show();
+        $("#connfail").hide();
+        switchTab("iptest");
         TestConnection(connTestPendingIp, username, password, remember, function(results){
           //Succ callback
           console.log(results);
           if (results.length == 0){
             //No connection can be made
-            $("#connfail").fadeIn("fast").delay(5000).fadeOut("fast");
+            $("#connecting").hide();
+            $("#connfail").fadeIn("fast");
           }else{
             //Connable IP found. Continue
-
+            $("#connsuccicon").hide();
+            switchTab("connsucc");
+            $("#connsuccicon").slideDown("slow");
+            setTimeout(function(){
+              switchTab("dirlist");
+            }, 3000);
           }
           $("#loginBtn").removeClass("is-disabled");
         }, function(){
