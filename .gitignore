@@ -8,6 +8,7 @@
 # Test binary, built with `go test -c`
 *.test
 *ac.bin
+arozsync-cli/config.json
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
