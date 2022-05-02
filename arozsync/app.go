@@ -44,11 +44,6 @@ func (a *App) shutdown(ctx context.Context) {
 	// Perform your teardown here
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
-}
-
 // Scan return a list of scanned nodes
 func (a *App) ScanNearbyNodes() string {
 	hosts := MdnsScanner.Scan(10, "arozos.com")

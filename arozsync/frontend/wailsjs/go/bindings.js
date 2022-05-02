@@ -5,14 +5,6 @@ const go = {
   "main": {
     "App": {
       /**
-       * Greet
-       * @param {string} arg1 - Go Type: string
-       * @returns {Promise<string>}  - Go Type: string
-       */
-      "Greet": (arg1) => {
-        return window.go.main.App.Greet(arg1);
-      },
-      /**
        * OpenLinkInLocalBrowser
        * @param {string} arg1 - Go Type: string
        * @returns {Promise<void>} 
