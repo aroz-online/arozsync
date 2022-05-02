@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -25,6 +24,7 @@ var password = flag.String("pass", "", "Password for authentication")
 
 var executingSyncConfig *SyncConfig
 var WebDAVEndpoint string = ""
+var syncRunning bool = false
 
 func main() {
 	flag.Parse()
@@ -58,14 +58,14 @@ func main() {
 		serverConnEndpt += "http://"
 	}
 
-	serverConnEndpt += executingSyncConfig.ServerIpv4 + ":" + strconv.Itoa(executingSyncConfig.Port) + "/webdav"
+	serverConnEndpt += executingSyncConfig.ServerAddr + ":" + strconv.Itoa(executingSyncConfig.Port) + "/webdav"
 	WebDAVEndpoint = serverConnEndpt
 
 	//Test Connections
 	c := gowebdav.NewClient(serverConnEndpt+"/user", *username, *password)
 	_, err = c.ReadDir("/")
 	if err != nil {
-		log.Println("Sync test failed. Please make sure your configuration file is correct.")
+		log.Println("Sync test failed. Please make sure your configuration file is correct and you have enabled WebDAV on your account.")
 		log.Fatal(err)
 	}
 
@@ -88,7 +88,12 @@ func main() {
 }
 
 func SyncFoldersFromConfig(config *SyncConfig) {
-	log.Println("Starting folder sync routine")
+	if syncRunning {
+		log.Println("[FAILED] Another sync routine running in progress. Skipping.")
+		return
+	}
+	syncRunning = true
+	log.Println("[INFO] Starting folder sync routine")
 	for _, thisFolder := range config.Folders {
 		folderRootname := thisFolder.RemoteRootID
 		folderRootname = strings.ReplaceAll(folderRootname, ":/", "")
@@ -106,22 +111,60 @@ func SyncFoldersFromConfig(config *SyncConfig) {
 		//Do a recursive folder update
 		syncFolderProcedure(c, thisFolder.LocalFolder, "/")
 	}
-	//If file not exists locally, download it from server side
-
+	syncRunning = false
+	log.Println("[INFO] Folder sync routine completed. Next sync in ", config.SyncInterval, " seconds.")
 }
 
+//Perform sync on the given filepath
 func syncFolderProcedure(c *gowebdav.Client, localBase string, remoteBase string) {
-	fmt.Println(remoteBase)
-	files, _ := c.ReadDir(remoteBase)
+	files, err := c.ReadDir(remoteBase)
+	if err != nil {
+		log.Println("[FAILED] Unable to sync folder to ", localBase)
+		return
+	}
+
 	for _, file := range files {
 		if file.IsDir() {
 			//Is folder.
 			syncFolderProcedure(c, localBase, remoteBase+file.Name()+"/")
 		} else {
-			//Is File
+			//Is File.
 			thisRelativePath := filepath.ToSlash(filepath.Join(remoteBase, file.Name()))
-			log.Println(thisRelativePath)
-		}
 
+			//Check for sync actions
+			expectedLocalPath := filepath.Join(localBase, thisRelativePath)
+			if !fileExists(expectedLocalPath) {
+				//This file not exists locally. Download it
+				err := downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
+				if err != nil {
+					log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
+					continue
+				} else {
+					log.Println("[OK] Downloaded ", thisRelativePath)
+				}
+			} else {
+				//File already exists. Compare mtime and synchronize it
+				localFileModTime, err := mtime(expectedLocalPath)
+				if err != nil {
+					continue
+				}
+				if file.ModTime().Unix() < localFileModTime {
+					//The local file is newer. Uplaod it
+					err := UploadToWebDAV(c, thisRelativePath, expectedLocalPath)
+					if err != nil {
+						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
+						continue
+					} else {
+						log.Println("[OK] Updated Remote Copy of ", thisRelativePath)
+					}
+
+				} else if file.ModTime().Unix() > localFileModTime {
+					//The remote file is newer. Download it
+
+					log.Println("[OK] Updated Local Copy of ", thisRelativePath)
+				}
+			}
+
+		}
 	}
 }

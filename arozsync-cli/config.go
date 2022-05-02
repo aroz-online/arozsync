@@ -17,7 +17,7 @@ type SyncFolder struct {
 }
 
 type SyncConfig struct {
-	ServerIpv4   string //Target server IPv4 address, e.g. 127.0.0.1
+	ServerAddr   string //Target server IPv4 address or domain, e.g. 127.0.0.1
 	Port         int    //The port where ArozOS Web interface is listening
 	SyncInterval int    //The interval in second where the sync routine is execute
 	UseHTTPs     bool   //Use secured HTTP connection
@@ -25,7 +25,7 @@ type SyncConfig struct {
 }
 
 var templateConfig SyncConfig = SyncConfig{
-	ServerIpv4:   "127.0.0.1",
+	ServerAddr:   "127.0.0.1",
 	Port:         8080,
 	SyncInterval: 300,
 	UseHTTPs:     false,
