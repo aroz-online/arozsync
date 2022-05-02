@@ -6,9 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/studio-b12/gowebdav"
@@ -18,13 +16,26 @@ import (
 	ArozOS WebDAV Sync CLI Interface
 */
 
+//Connection Related
 var congifPath = flag.String("c", "config.json", "The configuration file path")
 var username = flag.String("user", "", "Username for authentication")
 var password = flag.String("pass", "", "Password for authentication")
 
+//Synchronization Related
+var enableRemoteWrite = flag.Bool("rw", true, "Enable upload local change to remote file system. Set this to false for DOWNLOAD FROM REMOTE ONLY.")
+var enableRemoteDelete = flag.Bool("rd", false, "Enable remove remote file by deleting in local file system")
+var enableLocalWrite = flag.Bool("lw", true, "Enable remote changed to overwrite local changes")
+var enableLocalRemove = flag.Bool("ld", true, "Enable remove local file by deleteing in remote file system")
+
+//Command Related
+var cleanMode = flag.Bool("clean", false, "[DANGER] Execute system cleaning to remove deleted file backups")
+
+//Runtime Global Variables
 var executingSyncConfig *SyncConfig
 var WebDAVEndpoint string = ""
 var syncRunning bool = false
+var fileIndexList map[string]int64
+var lastSyncTime int64 = 0
 
 func main() {
 	flag.Parse()
@@ -50,6 +61,12 @@ func main() {
 		panic(err)
 	}
 
+	if *cleanMode {
+		RunCleaningCycle(executingSyncConfig)
+		log.Println("[INFO] All sync folder trash cleared")
+		os.Exit(0)
+	}
+
 	//Start the connection to server
 	serverConnEndpt := ""
 	if executingSyncConfig.UseHTTPs {
@@ -70,6 +87,7 @@ func main() {
 	}
 
 	//Setup Ready! Sync Now
+	lastSyncTime = time.Now().Unix()
 	SyncFoldersFromConfig(executingSyncConfig)
 
 	//Start Sync Progress Ticker
@@ -85,86 +103,4 @@ func main() {
 		}
 	}
 
-}
-
-func SyncFoldersFromConfig(config *SyncConfig) {
-	if syncRunning {
-		log.Println("[FAILED] Another sync routine running in progress. Skipping.")
-		return
-	}
-	syncRunning = true
-	log.Println("[INFO] Starting folder sync routine")
-	for _, thisFolder := range config.Folders {
-		folderRootname := thisFolder.RemoteRootID
-		folderRootname = strings.ReplaceAll(folderRootname, ":/", "")
-
-		//Establish connection to target endpoint
-		cleanedRemoteFolder := filepath.ToSlash(filepath.Clean(thisFolder.RemoteFolder))
-		connectPath := WebDAVEndpoint + filepath.ToSlash(filepath.Join("/", folderRootname, cleanedRemoteFolder))
-		c := gowebdav.NewClient(connectPath, *username, *password)
-
-		//Check if the target local folder exists. If not, create it
-		if !fileExists(thisFolder.LocalFolder) {
-			os.MkdirAll(thisFolder.LocalFolder, 0775)
-		}
-
-		//Do a recursive folder update
-		syncFolderProcedure(c, thisFolder.LocalFolder, "/")
-	}
-	syncRunning = false
-	log.Println("[INFO] Folder sync routine completed. Next sync in ", config.SyncInterval, " seconds.")
-}
-
-//Perform sync on the given filepath
-func syncFolderProcedure(c *gowebdav.Client, localBase string, remoteBase string) {
-	files, err := c.ReadDir(remoteBase)
-	if err != nil {
-		log.Println("[FAILED] Unable to sync folder to ", localBase)
-		return
-	}
-
-	for _, file := range files {
-		if file.IsDir() {
-			//Is folder.
-			syncFolderProcedure(c, localBase, remoteBase+file.Name()+"/")
-		} else {
-			//Is File.
-			thisRelativePath := filepath.ToSlash(filepath.Join(remoteBase, file.Name()))
-
-			//Check for sync actions
-			expectedLocalPath := filepath.Join(localBase, thisRelativePath)
-			if !fileExists(expectedLocalPath) {
-				//This file not exists locally. Download it
-				err := downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
-				if err != nil {
-					log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
-					continue
-				} else {
-					log.Println("[OK] Downloaded ", thisRelativePath)
-				}
-			} else {
-				//File already exists. Compare mtime and synchronize it
-				localFileModTime, err := mtime(expectedLocalPath)
-				if err != nil {
-					continue
-				}
-				if file.ModTime().Unix() < localFileModTime {
-					//The local file is newer. Uplaod it
-					err := UploadToWebDAV(c, thisRelativePath, expectedLocalPath)
-					if err != nil {
-						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
-						continue
-					} else {
-						log.Println("[OK] Updated Remote Copy of ", thisRelativePath)
-					}
-
-				} else if file.ModTime().Unix() > localFileModTime {
-					//The remote file is newer. Download it
-
-					log.Println("[OK] Updated Local Copy of ", thisRelativePath)
-				}
-			}
-
-		}
-	}
 }
