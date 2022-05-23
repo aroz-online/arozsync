@@ -1,2 +1,8 @@
+github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557 h1:l6surSnJ3RP4qA1qmKJ+hQn3UjytosdoG27WGjrDlVs=
+github.com/0xAX/notificator v0.0.0-20220220101646-ee9b8921e557/go.mod h1:sTrmvD/TxuypdOERsDOS7SndZg0rzzcCi1b6wQMXUYM=
+github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/56bj7Y/xa04UccTW04VP0Qed4vnQ=
+github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d/go.mod h1:YUTz3bUH2ZwIWBy3CJBeOBEugqcmXREj14T+iG/4k4U=
 github.com/studio-b12/gowebdav v0.0.0-20220128162035-c7b1ff8a5e62 h1:b2nJXyPCa9HY7giGM+kYcnQ71m14JnGdQabMPmyt++8=
 github.com/studio-b12/gowebdav v0.0.0-20220128162035-c7b1ff8a5e62/go.mod h1:bHA7t77X/QFExdeAnDzK6vKM34kEZAcE1OX4MfiwjkE=
+gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2 h1:MZF6J7CV6s/h0HBkfqebrYfKCVEo5iN+wzE4QhV3Evo=
+gopkg.in/toast.v1 v1.0.0-20180812000517-0a84660828b2/go.mod h1:s1Sn2yZos05Qfs7NKt867Xe18emOmtsO3eAKbDaon0o=

@@ -27,13 +27,13 @@ type SyncConfig struct {
 var templateConfig SyncConfig = SyncConfig{
 	ServerAddr:   "127.0.0.1",
 	Port:         8080,
-	SyncInterval: 300,
+	SyncInterval: 30,
 	UseHTTPs:     false,
 	Folders: []*SyncFolder{
 		{
 			RemoteRootID: "user:/",
 			RemoteFolder: "Desktop/",
-			LocalFolder:  "./tmp",
+			LocalFolder:  "./sync",
 		},
 	},
 }

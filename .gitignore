@@ -9,6 +9,7 @@
 *.test
 *ac.bin
 */tmp
+*/sync
 arozsync-cli/config.json
 
 # Output of the go coverage tool, specifically when used with LiteIDE

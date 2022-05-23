@@ -26,6 +26,7 @@ var enableRemoteWrite = flag.Bool("rw", true, "Enable upload local change to rem
 var enableRemoteDelete = flag.Bool("rd", false, "Enable remove remote file by deleting in local file system")
 var enableLocalWrite = flag.Bool("lw", true, "Enable remote changed to overwrite local changes")
 var enableLocalRemove = flag.Bool("ld", true, "Enable remove local file by deleteing in remote file system")
+var keepOverwriteVersions = flag.Bool("keepver", true, "Keep older version locally when overwrite local from remote")
 
 //Command Related
 var cleanMode = flag.Bool("clean", false, "[DANGER] Execute system cleaning to remove deleted file backups")
@@ -40,10 +41,17 @@ var lastSyncTime int64 = 0
 func main() {
 	flag.Parse()
 
+	//Generate a notification agent
+
 	//Generate a template config if not exists
 	if !fileExists(*congifPath) {
 		log.Println("Configuration not found. A template has been generated for you. Please modify the template and restart this application.")
 		generateTemplateConfig("config.json")
+		os.Exit(0)
+	}
+
+	if *username == "" || *password == "" {
+		log.Println("Missing username or password. Usage: arozsync-cli -user={username} -pass={password}")
 		os.Exit(0)
 	}
 
@@ -82,9 +90,12 @@ func main() {
 	c := gowebdav.NewClient(serverConnEndpt+"/user", *username, *password)
 	_, err = c.ReadDir("/")
 	if err != nil {
+		notification("Arozsync Start Failed", "Arozsync is unable to start. Please make sure your configuration file is correct and you have enabled WebDAV on your account.")
 		log.Println("Sync test failed. Please make sure your configuration file is correct and you have enabled WebDAV on your account.")
 		log.Fatal(err)
 	}
+
+	notification("Arozsync Started", "Arozsync started. You will receive notification if there are any errors.")
 
 	//Setup Ready! Sync Now
 	lastSyncTime = time.Now().Unix()
@@ -99,7 +110,10 @@ func main() {
 		case <-done:
 			return
 		case <-ticker.C:
-			SyncFoldersFromConfig(executingSyncConfig)
+			err = SyncFoldersFromConfig(executingSyncConfig)
+			if err != nil {
+				notification("Sync Failed!", "Failed to execute file synchronization sequence: "+err.Error()+"\n\n "+time.Now().Format("2006.01.02 15:04:05"))
+			}
 		}
 	}
 

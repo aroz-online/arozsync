@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,10 +11,9 @@ import (
 	"github.com/studio-b12/gowebdav"
 )
 
-func SyncFoldersFromConfig(config *SyncConfig) {
+func SyncFoldersFromConfig(config *SyncConfig) error {
 	if syncRunning {
-		log.Println("[FAILED] Another sync routine running in progress. Skipping.")
-		return
+		return errors.New("[FAILED] Another sync routine running in progress. Skipping.")
 	}
 	syncRunning = true
 	log.Println("[INFO] Starting folder sync routine")
@@ -32,22 +32,32 @@ func SyncFoldersFromConfig(config *SyncConfig) {
 		}
 
 		//Do a recursive folder update
-		syncRemoteFolderProcedure(c, thisFolder.LocalFolder, "/")
-		SyncLocalFolderprocedure(c, thisFolder.LocalFolder, "/")
+		err := syncRemoteFolderProcedure(c, thisFolder.LocalFolder, "/")
+		if err != nil {
+			syncRunning = false
+			return err
+		}
+		err = SyncLocalFolderprocedure(c, thisFolder.LocalFolder, "/")
+		if err != nil {
+			syncRunning = false
+			return err
+		}
 		lastSyncTime = time.Now().Unix()
 	}
 	syncRunning = false
 	log.Println("[INFO] Folder sync routine completed. Next sync in ", config.SyncInterval, " seconds.")
+	return nil
 }
 
 //Perform sync on the given filepath
-func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase string) {
+func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase string) error {
 	files, err := c.ReadDir(remoteBase)
 	if err != nil {
-		log.Println("[FAILED] Unable to sync folder to ", localBase)
-		return
+		log.Println("[FAILED] Unable to sync folder to " + localBase)
+		return errors.New("Unable to sync folder to " + localBase + ". Is network connection available? ")
 	}
 
+	cycleID := time.Now().Format("2006-01-02_15-04-05")
 	for _, file := range files {
 		if file.IsDir() {
 			//Is folder.
@@ -66,13 +76,13 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 						//This file exists in last sync. This file is recently deleted
 						err := WebDAVMoveToTrash(c, thisRelativePath)
 						if err != nil {
-							log.Println("[FAILED] Unale to delete remote file ", thisRelativePath, err.Error())
+							log.Println("[FAILED] Unale to delete remote file ", thisRelativePath, err.Error(), " skipping!")
 							continue
 						} else {
 							log.Println("[OK] Remote Deleted file ", thisRelativePath)
 						}
 					} else {
-						log.Println("[ERROR] Remote Delete (-rd) flag is set to false. Enable this flag in order to delete file from local sync folder.")
+						log.Println("[Warning] Remote Delete (-rd) flag is set to false. Enable this flag in order to delete file from local sync folder.")
 						//Re-download the missing file to keep local file system structured based on startup rules
 						downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
 					}
@@ -81,7 +91,7 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 					//Download file from server
 					err := downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
 					if err != nil {
-						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
+						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error(), " skipping!")
 						continue
 					} else {
 						log.Println("[OK] Downloaded ", thisRelativePath)
@@ -96,6 +106,13 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 				}
 				if file.ModTime().Unix() < localFileModTime && *enableRemoteWrite {
 					//The local file is newer. Uplaod it
+					if *keepOverwriteVersions {
+						localverFolder := filepath.ToSlash(filepath.Join(filepath.Dir(thisRelativePath), ".localver", cycleID))
+						err = c.MkdirAll(localverFolder, 0775)
+						log.Println("[FAILED] Unable to backup version ", thisRelativePath, err.Error())
+						err = c.Copy(thisRelativePath, filepath.ToSlash(filepath.Join(localverFolder, filepath.Base(thisRelativePath))), false)
+						log.Println("[FAILED] Unable to backup version ", thisRelativePath, err.Error())
+					}
 					err := UploadToWebDAV(c, thisRelativePath, expectedLocalPath)
 					if err != nil {
 						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
@@ -106,6 +123,12 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 
 				} else if file.ModTime().Unix() > localFileModTime && *enableLocalWrite {
 					//The remote file is newer. Download it
+					if *keepOverwriteVersions {
+						//Keep the old file in .localver folder
+						localverFolder := filepath.Join(filepath.Dir(expectedLocalPath), ".localver", cycleID)
+						os.MkdirAll(localverFolder, 0775)
+						os.Rename(expectedLocalPath, filepath.Join(localverFolder, filepath.Base(expectedLocalPath)))
+					}
 					err := downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
 					if err != nil {
 						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
@@ -119,12 +142,12 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 
 		}
 	}
+	return nil
 }
 
 //Sync local files
-func SyncLocalFolderprocedure(c *gowebdav.Client, localBase string, remoteBase string) {
+func SyncLocalFolderprocedure(c *gowebdav.Client, localBase string, remoteBase string) error {
 	//Upload Newly Created Files
-
 	if len(fileIndexList) > 0 && *enableRemoteWrite {
 		//Upload newly created files
 		filepath.Walk(localBase, func(path string, info os.FileInfo, err error) error {
@@ -141,6 +164,7 @@ func SyncLocalFolderprocedure(c *gowebdav.Client, localBase string, remoteBase s
 					err = UploadToWebDAV(c, relPath, path)
 					if err != nil {
 						log.Println("[FAILED] Unable to upload ", relPath, err.Error())
+						return errors.New("Unable to upload " + relPath)
 					} else {
 						log.Println("[OK] Uploaded ", relPath)
 					}
@@ -185,4 +209,5 @@ func SyncLocalFolderprocedure(c *gowebdav.Client, localBase string, remoteBase s
 	})
 
 	fileIndexList = thisScanFilelist
+	return nil
 }

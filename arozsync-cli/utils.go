@@ -10,7 +10,24 @@ import (
 	"time"
 
 	"github.com/studio-b12/gowebdav"
+	"gopkg.in/toast.v1"
 )
+
+func notification(title string, message string) error {
+	iconPath, _ := filepath.Abs("./icon.png")
+	notification := toast.Notification{
+		AppID:   "Arozsync",
+		Title:   title,
+		Message: message,
+		Icon:    iconPath,
+		Actions: []toast.Action{
+			{"protocol", "Open Web-desktop", "http://localhost:8080/"},
+			{"protocol", "Okay!", ""},
+		},
+	}
+
+	return notification.Push()
+}
 
 func fileExists(name string) bool {
 	_, err := os.Stat(name)
@@ -78,7 +95,20 @@ func UploadToWebDAV(c *gowebdav.Client, remote string, local string) error {
 	file, _ := os.Open(local)
 	defer file.Close()
 
-	return c.WriteStream(remote, file, 0775)
+	err := c.WriteStream(remote, file, 0775)
+	if err != nil {
+		return err
+	}
+	//Update the local file modtime so it wont get pull down again
+	uptime := time.Now().Local()
+
+	//Set both access time and modified time of the file to the current time
+	err = os.Chtimes(local, uptime, uptime)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //Move a remote resources to trash
