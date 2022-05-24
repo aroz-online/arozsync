@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"io"
 	"os"
@@ -120,4 +122,19 @@ func WebDAVMoveToTrash(c *gowebdav.Client, name string) error {
 	trashPath := filepath.ToSlash(filepath.Join(filepath.Dir(name), ".trash", filepath.Base(name)+"."+strconv.Itoa(int(time.Now().Unix()))))
 	//log.Println("Moving ", name, " to ", trashPath)
 	return c.Rename(name, trashPath, true)
+}
+
+//Get file MD5 Sum
+func GetFileMD5Sum(filename string) string {
+	file, err := os.Open(filename)
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, file); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }

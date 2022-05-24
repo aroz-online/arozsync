@@ -36,13 +36,15 @@ var executingSyncConfig *SyncConfig
 var WebDAVEndpoint string = ""
 var syncRunning bool = false
 var fileIndexList map[string]int64
+var connectionLost bool = false
 var lastSyncTime int64 = 0
 var lastFailTime int64 = -1
+var md5SumMap map[string]string
 
 func main() {
 	flag.Parse()
 
-	//Generate a notification agent
+	md5SumMap = map[string]string{}
 
 	//Generate a template config if not exists
 	if !fileExists(*congifPath) {
@@ -114,13 +116,20 @@ func main() {
 			err = SyncFoldersFromConfig(executingSyncConfig)
 			if err != nil {
 				if lastFailTime != lastSyncTime {
-					//
+					//Sync failed and it just happended. Show notification once
 					notification("Sync Failed!", "Failed to execute file synchronization sequence: "+err.Error()+"\n\n "+time.Now().Format("2006.01.02 15:04:05"))
 					lastFailTime = lastSyncTime
 				} else {
 					log.Println("Sync Failed!")
 				}
-
+				connectionLost = true
+			} else {
+				//Success
+				if connectionLost {
+					//Recently connection resumed
+					notification("Sync Resumed", "Connection to server just resumed. Resuming file sync to host server.\n\n "+time.Now().Format("2006.01.02 15:04:05"))
+				}
+				connectionLost = false
 			}
 		}
 	}

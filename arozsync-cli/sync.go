@@ -81,6 +81,8 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 						} else {
 							log.Println("[OK] Remote Deleted file ", thisRelativePath)
 						}
+
+						delete(md5SumMap, thisRelativePath)
 					} else {
 						log.Println("[Warning] Remote Delete (-rd) flag is set to false. Enable this flag in order to delete file from local sync folder.")
 						//Re-download the missing file to keep local file system structured based on startup rules
@@ -90,12 +92,16 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 				} else {
 					//Download file from server
 					err := downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
+
 					if err != nil {
 						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error(), " skipping!")
 						continue
 					} else {
 						log.Println("[OK] Downloaded ", thisRelativePath)
 					}
+
+					//Save the MD5 Sum of this file
+					md5SumMap[thisRelativePath] = GetFileMD5Sum(expectedLocalPath)
 				}
 
 			} else {
@@ -104,8 +110,15 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 				if err != nil {
 					continue
 				}
+
 				if file.ModTime().Unix() < localFileModTime && *enableRemoteWrite {
-					//The local file is newer. Uplaod it
+					if md5SumMap[thisRelativePath] == GetFileMD5Sum(expectedLocalPath) {
+						//Althought it is recently updated, MD5 hash identical to previous download from server / upload to server.
+						//Skip the upload this time
+						continue
+					}
+
+					//The local file is newer and contain changes. Uplaod it
 					if *keepOverwriteVersions {
 						localverFolder := filepath.ToSlash(filepath.Join(filepath.Dir(thisRelativePath), ".localver", cycleID))
 						err = c.MkdirAll(localverFolder, 0775)
@@ -119,6 +132,7 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 						}
 
 					}
+
 					err := UploadToWebDAV(c, thisRelativePath, expectedLocalPath)
 					if err != nil {
 						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
@@ -126,6 +140,8 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 					} else {
 						log.Println("[OK] Updated Remote Copy of ", thisRelativePath)
 					}
+
+					md5SumMap[thisRelativePath] = GetFileMD5Sum(expectedLocalPath)
 
 				} else if file.ModTime().Unix() > localFileModTime && *enableLocalWrite {
 					//The remote file is newer. Download it
@@ -135,6 +151,7 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 						os.MkdirAll(localverFolder, 0775)
 						os.Rename(expectedLocalPath, filepath.Join(localverFolder, filepath.Base(expectedLocalPath)))
 					}
+					//Download the file
 					err := downloadFromWebDAV(c, thisRelativePath, expectedLocalPath)
 					if err != nil {
 						log.Println("[FAILED] Unable to sync ", thisRelativePath, err.Error())
@@ -142,6 +159,9 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 					} else {
 						log.Println("[OK] Updated Local Copy of ", thisRelativePath)
 					}
+
+					//Save the MD5 Sum of this file
+					md5SumMap[thisRelativePath] = GetFileMD5Sum(expectedLocalPath)
 
 				}
 			}
