@@ -37,6 +37,7 @@ var WebDAVEndpoint string = ""
 var syncRunning bool = false
 var fileIndexList map[string]int64
 var lastSyncTime int64 = 0
+var lastFailTime int64 = -1
 
 func main() {
 	flag.Parse()
@@ -112,7 +113,14 @@ func main() {
 		case <-ticker.C:
 			err = SyncFoldersFromConfig(executingSyncConfig)
 			if err != nil {
-				notification("Sync Failed!", "Failed to execute file synchronization sequence: "+err.Error()+"\n\n "+time.Now().Format("2006.01.02 15:04:05"))
+				if lastFailTime != lastSyncTime {
+					//
+					notification("Sync Failed!", "Failed to execute file synchronization sequence: "+err.Error()+"\n\n "+time.Now().Format("2006.01.02 15:04:05"))
+					lastFailTime = lastSyncTime
+				} else {
+					log.Println("Sync Failed!")
+				}
+
 			}
 		}
 	}

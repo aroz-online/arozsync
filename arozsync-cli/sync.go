@@ -109,9 +109,15 @@ func syncRemoteFolderProcedure(c *gowebdav.Client, localBase string, remoteBase 
 					if *keepOverwriteVersions {
 						localverFolder := filepath.ToSlash(filepath.Join(filepath.Dir(thisRelativePath), ".localver", cycleID))
 						err = c.MkdirAll(localverFolder, 0775)
-						log.Println("[FAILED] Unable to backup version ", thisRelativePath, err.Error())
+						if err != nil {
+							log.Println("[FAILED] Unable to backup version ", thisRelativePath, err.Error())
+						}
+
 						err = c.Copy(thisRelativePath, filepath.ToSlash(filepath.Join(localverFolder, filepath.Base(thisRelativePath))), false)
-						log.Println("[FAILED] Unable to backup version ", thisRelativePath, err.Error())
+						if err != nil {
+							log.Println("[FAILED] Unable to backup version ", thisRelativePath, err.Error())
+						}
+
 					}
 					err := UploadToWebDAV(c, thisRelativePath, expectedLocalPath)
 					if err != nil {
