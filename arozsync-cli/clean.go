@@ -23,6 +23,10 @@ func RunCleaningCycle(config *SyncConfig) {
 			if info.IsDir() && filepath.Base(path) == ".trash" {
 				markForDeleteFolders = append(markForDeleteFolders, path)
 			}
+
+			if info.IsDir() && filepath.Base(path) == ".localver" {
+				markForDeleteFolders = append(markForDeleteFolders, path)
+			}
 			return nil
 		})
 

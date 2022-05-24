@@ -177,7 +177,7 @@ func SyncLocalFolderprocedure(c *gowebdav.Client, localBase string, remoteBase s
 	if len(fileIndexList) > 0 && *enableRemoteWrite {
 		//Upload newly created files
 		filepath.Walk(localBase, func(path string, info os.FileInfo, err error) error {
-			if !info.IsDir() && !fileInTrash(path) {
+			if !info.IsDir() && !fileInTrash(path) && !fileInLocalVerBuffer(path) {
 				//Is File. Check if it is created after last sync time and not exists in fileIndexList
 				relPath, err := filepath.Rel(localBase, path)
 				if err != nil {
@@ -204,7 +204,7 @@ func SyncLocalFolderprocedure(c *gowebdav.Client, localBase string, remoteBase s
 	//Delete files that no longer exists
 	thisScanFilelist := map[string]int64{}
 	filepath.Walk(localBase, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() && !fileInTrash(path) {
+		if !info.IsDir() && !fileInTrash(path) && !fileInLocalVerBuffer(path) {
 			//Is File (that is not trash)
 			relPath, err := filepath.Rel(localBase, path)
 			if err != nil {

@@ -51,6 +51,10 @@ func fileInTrash(filename string) bool {
 	return strings.Contains(filepath.ToSlash(filename), "/.trash/")
 }
 
+func fileInLocalVerBuffer(filename string) bool {
+	return strings.Contains(filepath.ToSlash(filename), "/.localver/")
+}
+
 func mtime(filename string) (int64, error) {
 	file, err := os.Stat(filename)
 	if err != nil {
