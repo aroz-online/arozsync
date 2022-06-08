@@ -123,8 +123,14 @@ func WebDAVMoveToTrash(c *gowebdav.Client, name string) error {
 		return errors.New("remote file not exists")
 	}
 
-	trashPath := filepath.ToSlash(filepath.Join(filepath.Dir(name), ".trash", filepath.Base(name)+"."+strconv.Itoa(int(time.Now().Unix()))))
+	trashPath := filepath.ToSlash(filepath.Join(filepath.Dir(name), ".metadata/.trash", filepath.Base(name)+"."+strconv.Itoa(int(time.Now().Unix()))))
 	//log.Println("Moving ", name, " to ", trashPath)
+
+	//Create remote trash folder if not exists
+	err := c.MkdirAll(filepath.ToSlash(filepath.Dir(trashPath)), 0775)
+	if err != nil {
+		return err
+	}
 	return c.Rename(name, trashPath, true)
 }
 
